@@ -4,6 +4,19 @@ Tous les changements notables apportés à ce projet seront documentés dans ce 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère à la [Gestion Sémantique de Version](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-08-03
+
+### Corrigé
+- **CI/CD** : Remplacement de l'action GitHub `koalaman/shellcheck-action` (dépôt introuvable) par une installation directe de ShellCheck via `apt-get`.
+- **checks.sh** : Correction de la syntaxe invalide `local add_field()` — remplacée par une fonction `_checks_build_field()` et un tableau Bash.
+- **checks.sh** : Ajout du support du mode `--dry-run` (les alertes Discord n'étaient pas bloquées en dry-run).
+- **config.sh** : Renommage de `SCRIPT_DIR` en `CONFIG_DIR` pour éviter un conflit `readonly` avec les modules `lib/`.
+- **monitor.sh** : Suppression de la redéclaration de `NODESENTINEL_VERSION` (déjà définie dans `config.sh`).
+- **lib/*.sh** : Correction des chemins de sourcing (`${BASE_DIR}/lib/` → `${SCRIPT_DIR}/`) et ajout des directives `shellcheck source=`.
+
+### Ajouté
+- **Documentation complète** dans `docs/` : INSTALLATION.md, CONFIGURATION.md, USAGE.md, ARCHITECTURE.md, API_REFERENCE.md, CONTRIBUTING.md, TROUBLESHOOTING.md, SECURITY.md.
+
 ## [1.0.0] - 2026-08-03
 
 ### Ajouté

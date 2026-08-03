@@ -8,20 +8,18 @@ on:
 
 jobs:
   shellcheck:
-    name: Run ShellCheck
+    name: Lint Bash avec ShellCheck
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: Checkout code
+      - name: Checkout du code
         uses: actions/checkout@v4
 
-      - name: Run ShellCheck
-        uses: koalaman/shellcheck-action@v0.0.0
-        with:
-          # Enable external source tracking
-          # Analyze all .sh files in root and lib directory
-          scandir: './'
-          check_together: 'yes'
-          # find all shell scripts
-          # Additional arguments
-          additional_args: '-x'
+      - name: Installer ShellCheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Linter les scripts principaux
+        run: shellcheck -x monitor.sh install.sh uninstall.sh config.sh
+
+      - name: Linter les modules lib/
+        run: shellcheck -x lib/*.sh
