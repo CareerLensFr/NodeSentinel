@@ -5,7 +5,9 @@
 # Auteur: CareerLens
 # Licence: MIT
 
+# shellcheck disable=SC2034
 readonly NODESENTINEL_VERSION="1.0.0"
+# shellcheck disable=SC2034
 readonly INSTALL_DIR="/opt/nodesentinel"
 
 # Résolution du répertoire de ce fichier de configuration

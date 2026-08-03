@@ -4,6 +4,12 @@ Tous les changements notables apportés à ce projet seront documentés dans ce 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère à la [Gestion Sémantique de Version](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2026-08-03
+
+### Corrigé
+- Workflows shellcheck. Remplacement de actions/checkout@v4 par la v7
+- config.sh : Ajout de # shellcheck disable=SC2034 sur INSTALL_DIR et NODESENTINEL_VERSION
+
 ## [1.0.1] - 2026-08-03
 
 ### Corrigé

@@ -15,27 +15,28 @@ source "${SCRIPT_DIR}/logger.sh"
 
 # Retourne le pourcentage CPU via /proc/stat
 system_get_cpu_usage() {
-    local cpu_now cpu_last
+    local -a cpu_last cpu_now
     local total_now total_last
     local idle_now idle_last
     local diff_total diff_idle usage
 
     # 1ère mesure
-    cpu_last=($(head -n1 /proc/stat))
+    read -ra cpu_last < <(head -n1 /proc/stat)
     idle_last=${cpu_last[4]}
     total_last=0
-    for i in "${cpu_last[@]:1}"; do
-        total_last=$((total_last + i))
+    local val
+    for val in "${cpu_last[@]:1}"; do
+        total_last=$((total_last + val))
     done
 
     sleep 1
 
     # 2ème mesure
-    cpu_now=($(head -n1 /proc/stat))
+    read -ra cpu_now < <(head -n1 /proc/stat)
     idle_now=${cpu_now[4]}
     total_now=0
-    for i in "${cpu_now[@]:1}"; do
-        total_now=$((total_now + i))
+    for val in "${cpu_now[@]:1}"; do
+        total_now=$((total_now + val))
     done
 
     diff_idle=$((idle_now - idle_last))
@@ -55,7 +56,7 @@ system_get_ram_usage() {
     total=$(grep -i MemTotal /proc/meminfo | awk '{print $2}')
     free=$(grep -i MemFree /proc/meminfo | awk '{print $2}')
     buffers=$(grep -i Buffers /proc/meminfo | head -n1 | awk '{print $2}')
-    cached=$(grep -i Cached /proc/meminfo | head -n1 | awk '{print $2}')
+    cached=$(grep -i "^Cached:" /proc/meminfo | head -n1 | awk '{print $2}')
 
     [[ -z "$buffers" ]] && buffers=0
     [[ -z "$cached" ]] && cached=0
@@ -86,9 +87,9 @@ system_get_disk_usage() {
     local df_out percent used_k total_k
     df_out=$(df -kP "${mount_point}" | tail -1)
     
-    total_k=$(echo "${df_out}" | awk '{print $2}')
-    used_k=$(echo "${df_out}" | awk '{print $3}')
-    percent=$(echo "${df_out}" | awk '{print $5}' | sed 's/%//')
+    total_k=$(awk '{print $2}' <<< "${df_out}")
+    used_k=$(awk '{print $3}' <<< "${df_out}")
+    percent=$(awk '{print $5}' <<< "${df_out}" | sed 's/%//')
     
     local total_gb used_gb
     total_gb=$((total_k / 1024 / 1024))
@@ -99,7 +100,7 @@ system_get_disk_usage() {
 
 # Retourne le load average
 system_get_load_average() {
-    cat /proc/loadavg | awk '{print $1, $2, $3}'
+    awk '{print $1, $2, $3}' /proc/loadavg
 }
 
 # Uptime formaté
@@ -122,8 +123,8 @@ system_get_network_stats() {
         echo "0 0"
         return
     fi
-    rx=$(echo "${stats}" | awk '{print $2}')
-    tx=$(echo "${stats}" | awk '{print $10}')
+    rx=$(awk '{print $2}' <<< "${stats}")
+    tx=$(awk '{print $10}' <<< "${stats}")
     echo "${rx} ${tx}"
 }
 
