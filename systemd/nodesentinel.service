@@ -1,0 +1,20 @@
+[Unit]
+Description=NodeSentinel - Surveillance système et Docker
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/nodesentinel/monitor.sh --once
+User=root
+Group=root
+EnvironmentFile=-/opt/nodesentinel/.env
+ProtectSystem=full
+NoNewPrivileges=true
+PrivateTmp=true
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nodesentinel
+
+[Install]
+WantedBy=multi-user.target

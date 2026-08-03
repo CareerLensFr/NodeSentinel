@@ -1,0 +1,27 @@
+name: ShellCheck
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  shellcheck:
+    name: Run ShellCheck
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run ShellCheck
+        uses: koalaman/shellcheck-action@v0.0.0
+        with:
+          # Enable external source tracking
+          # Analyze all .sh files in root and lib directory
+          scandir: './'
+          check_together: 'yes'
+          # find all shell scripts
+          # Additional arguments
+          additional_args: '-x'

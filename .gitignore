@@ -1,0 +1,22 @@
+# Configuration locale
+.env
+
+# Logs
+logs/*.log
+*.log
+
+# Fichiers temporaires éditeurs
+*.swp
+*.swo
+*.bak
+*~
+.*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
