@@ -4,6 +4,11 @@ Tous les changements notables apportés à ce projet seront documentés dans ce 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère à la [Gestion Sémantique de Version](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.6] - 2026-08-07
+
+### Corrigé
+- **Bannière (Affiche)** : Correction de la bannière ASCII de démarrage dans `monitor.sh` qui était tronquée et orthographiée "NODE SENTIN" au lieu de "NODE SENTINEL", et réalignement symétrique de la boîte d'affichage double-ligne.
+
 ## [1.0.5] - 2026-08-07
 
 ### Ajouté
