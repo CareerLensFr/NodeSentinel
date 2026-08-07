@@ -36,7 +36,7 @@ check_dependencies() {
 
 install_files() {
     echo "Création du répertoire d'installation $INSTALL_DIR..."
-    mkdir -p "$INSTALL_DIR"/{lib,logs,systemd}
+    mkdir -p "$INSTALL_DIR"/{lib,systemd}
 
     echo "Copie des fichiers..."
     cp -r "$SCRIPT_DIR"/*.sh "$INSTALL_DIR/"

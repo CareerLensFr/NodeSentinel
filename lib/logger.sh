@@ -7,18 +7,18 @@
 
 [[ -n "${_LOGGER_MODULE_LOADED:-}" ]] && return 0; _LOGGER_MODULE_LOADED=1
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_LOGGER_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/utils.sh
-source "${SCRIPT_DIR}/utils.sh"
+source "${_LOGGER_SCRIPT_DIR}/utils.sh"
 
-readonly LOG_LEVELS=(DEBUG INFO WARN ERROR CRITICAL)
+readonly VALID_LOG_LEVELS=(DEBUG INFO WARN ERROR CRITICAL)
 
 # Obtient la valeur numérique d'un niveau de log
 _log_level_value() {
     local level="$1"
     local i
-    for ((i=0; i<${#LOG_LEVELS[@]}; i++)); do
-        if [[ "${LOG_LEVELS[i]}" == "${level}" ]]; then
+    for ((i=0; i<${#VALID_LOG_LEVELS[@]}; i++)); do
+        if [[ "${VALID_LOG_LEVELS[i]}" == "${level}" ]]; then
             echo "$i"
             return 0
         fi
@@ -59,13 +59,18 @@ log_warn() { _log_message "WARN" "$1"; }
 log_error() { _log_message "ERROR" "$1"; }
 log_critical() { _log_message "CRITICAL" "$1"; }
 
-# Rotation si taille > LOG_MAX_SIZE
+# Rotation basique si taille > LOG_MAX_SIZE
+# NOTE: En production, préférer logrotate ou systemd-journald
 log_rotate() {
     if [[ -f "${LOG_FILE}" ]]; then
         local size
-        size=$(stat -c%s "${LOG_FILE}" 2>/dev/null || stat -f%z "${LOG_FILE}" 2>/dev/null)
+        size=$(stat -c%s "${LOG_FILE}" 2>/dev/null || stat -f%z "${LOG_FILE}" 2>/dev/null || echo 0)
         if [[ -n "${size}" && ${size} -gt ${LOG_MAX_SIZE} ]]; then
-            mv "${LOG_FILE}" "${LOG_FILE}.old"
+            # Conserver les 3 dernières rotations
+            [[ -f "${LOG_FILE}.3" ]] && rm -f "${LOG_FILE}.3"
+            [[ -f "${LOG_FILE}.2" ]] && mv -f "${LOG_FILE}.2" "${LOG_FILE}.3"
+            [[ -f "${LOG_FILE}.1" ]] && mv -f "${LOG_FILE}.1" "${LOG_FILE}.2"
+            mv -f "${LOG_FILE}" "${LOG_FILE}.1"
             touch "${LOG_FILE}"
             log_info "Rotation du log effectuée."
         fi

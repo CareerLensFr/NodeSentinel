@@ -7,18 +7,30 @@
 
 [[ -n "${_DOCKER_MODULE_LOADED:-}" ]] && return 0; _DOCKER_MODULE_LOADED=1
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_DOCKER_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/utils.sh
-source "${SCRIPT_DIR}/utils.sh"
+source "${_DOCKER_SCRIPT_DIR}/utils.sh"
 # shellcheck source=lib/logger.sh
-source "${SCRIPT_DIR}/logger.sh"
+source "${_DOCKER_SCRIPT_DIR}/logger.sh"
 
-# Vérifie que docker est installé ET que le démon tourne
+# Cache du résultat pour éviter les appels multiples à docker info par cycle
+_DOCKER_AVAILABLE_CACHE=""
+
+# Vérifie que docker est installé ET que le démon tourne (résultat mis en cache)
 docker_is_available() {
-    if utils_command_exists docker && docker info >/dev/null 2>&1; then
-        return 0
+    if [[ -z "${_DOCKER_AVAILABLE_CACHE}" ]]; then
+        if utils_command_exists docker && docker info >/dev/null 2>&1; then
+            _DOCKER_AVAILABLE_CACHE="yes"
+        else
+            _DOCKER_AVAILABLE_CACHE="no"
+        fi
     fi
-    return 1
+    [[ "${_DOCKER_AVAILABLE_CACHE}" == "yes" ]]
+}
+
+# Réinitialise le cache (à appeler en début de cycle)
+docker_reset_cache() {
+    _DOCKER_AVAILABLE_CACHE=""
 }
 
 # Liste tous les conteneurs avec état
@@ -53,11 +65,20 @@ docker_get_container_stats() {
     docker stats --no-stream --format "{{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}"
 }
 
-# Conteneurs arrêtés qui devraient tourner (Ex: Restart policy unless-stopped/always)
+# Conteneurs arrêtés qui devraient tourner (filtre par restart policy)
 docker_get_stopped_containers() {
     if ! docker_is_available; then
         return
     fi
-    # Pour simplifier, on liste les exited. Idéalement il faut inspecter la policy.
-    docker ps -a --filter "status=exited" --format "{{.Names}}"
+    # Liste les conteneurs exited, puis filtre ceux avec une restart policy active
+    local container_id
+    docker ps -a --filter "status=exited" --format "{{.ID}}" | while read -r container_id; do
+        [[ -z "${container_id}" ]] && continue
+        local policy
+        policy=$(docker inspect --format '{{.HostConfig.RestartPolicy.Name}}' "${container_id}" 2>/dev/null)
+        # Ne remonter que les conteneurs qui DEVRAIENT tourner (policy != no/empty)
+        if [[ "${policy}" == "always" || "${policy}" == "unless-stopped" || "${policy}" == "on-failure" ]]; then
+            docker inspect --format '{{.Name}}' "${container_id}" 2>/dev/null | sed 's|^/||'
+        fi
+    done
 }

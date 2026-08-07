@@ -7,11 +7,11 @@
 
 [[ -n "${_SYSTEM_MODULE_LOADED:-}" ]] && return 0; _SYSTEM_MODULE_LOADED=1
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_SYSTEM_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/utils.sh
-source "${SCRIPT_DIR}/utils.sh"
+source "${_SYSTEM_SCRIPT_DIR}/utils.sh"
 # shellcheck source=lib/logger.sh
-source "${SCRIPT_DIR}/logger.sh"
+source "${_SYSTEM_SCRIPT_DIR}/logger.sh"
 
 # Retourne le pourcentage CPU via /proc/stat
 system_get_cpu_usage() {
@@ -118,7 +118,7 @@ system_get_network_stats() {
     local interface="$1"
     local rx tx
     local stats
-    stats=$(grep "${interface}:" /proc/net/dev)
+    stats=$(grep -w "^[[:space:]]*${interface}:" /proc/net/dev)
     if [[ -z "${stats}" ]]; then
         echo "0 0"
         return

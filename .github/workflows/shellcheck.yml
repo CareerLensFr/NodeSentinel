@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ "main", "master" ]
 
+permissions:
+  contents: read
+
 jobs:
   shellcheck:
     name: Lint Bash avec ShellCheck
@@ -15,11 +18,7 @@ jobs:
       - name: Checkout du code
         uses: actions/checkout@v6
 
-      - name: Installer ShellCheck
-        run: sudo apt-get update && sudo apt-get install -y shellcheck
-
-      - name: Linter les scripts principaux
-        run: shellcheck -x monitor.sh install.sh uninstall.sh config.sh
-
-      - name: Linter les modules lib/
-        run: shellcheck -x lib/*.sh
+      - name: Linter les scripts Shell
+        run: |
+          shellcheck -x monitor.sh install.sh uninstall.sh config.sh
+          shellcheck -x lib/*.sh

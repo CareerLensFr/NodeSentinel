@@ -7,13 +7,17 @@
 
 [[ -n "${_CHECKS_MODULE_LOADED:-}" ]] && return 0; _CHECKS_MODULE_LOADED=1
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BASE_DIR="$(dirname "${SCRIPT_DIR}")"
-source "${SCRIPT_DIR}/utils.sh"
-source "${SCRIPT_DIR}/logger.sh"
-source "${SCRIPT_DIR}/discord.sh"
-source "${SCRIPT_DIR}/system.sh"
-source "${SCRIPT_DIR}/docker.sh"
+_CHECKS_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/utils.sh
+source "${_CHECKS_SCRIPT_DIR}/utils.sh"
+# shellcheck source=lib/logger.sh
+source "${_CHECKS_SCRIPT_DIR}/logger.sh"
+# shellcheck source=lib/discord.sh
+source "${_CHECKS_SCRIPT_DIR}/discord.sh"
+# shellcheck source=lib/system.sh
+source "${_CHECKS_SCRIPT_DIR}/system.sh"
+# shellcheck source=lib/docker.sh
+source "${_CHECKS_SCRIPT_DIR}/docker.sh"
 
 # --- Fonctions utilitaires internes ---
 
@@ -23,7 +27,8 @@ _checks_build_field() {
     local name="$1"
     local value="$2"
     local inline="${3:-true}"
-    printf '{"name": "%s", "value": "%s", "inline": %s}' "${name}" "${value}" "${inline}"
+    jq -n --arg name "${name}" --arg value "${value}" --argjson inline "${inline}" \
+        '{name: $name, value: $value, inline: $inline}'
 }
 
 # --- Vérifications système ---
@@ -39,7 +44,11 @@ checks_run_system() {
     local cpu
     cpu=$(system_get_cpu_usage)
     log_debug "CPU: ${cpu}%"
-    if [[ -n "${cpu}" && ${cpu} -ge ${CPU_THRESHOLD} ]]; then
+    if [[ ! "${cpu}" =~ ^[0-9]+$ ]]; then
+        log_warn "CPU: valeur invalide '${cpu}', ignorée."
+        cpu=0
+    fi
+    if [[ ${cpu} -ge ${CPU_THRESHOLD} ]]; then
         fields+=("$(_checks_build_field "🔥 CPU" "Utilisation: ${cpu}% (Seuil: ${CPU_THRESHOLD}%)")")
         global_status=2
         log_warn "CPU au-dessus du seuil: ${cpu}% >= ${CPU_THRESHOLD}%"
@@ -52,7 +61,11 @@ checks_run_system() {
     ram_used=$(echo "${ram_info}" | awk '{print $2}')
     ram_total=$(echo "${ram_info}" | awk '{print $3}')
     log_debug "RAM: ${ram_pct}% (${ram_used}MB / ${ram_total}MB)"
-    if [[ -n "${ram_pct}" && ${ram_pct} -ge ${RAM_THRESHOLD} ]]; then
+    if [[ ! "${ram_pct}" =~ ^[0-9]+$ ]]; then
+        log_warn "RAM: valeur invalide '${ram_pct}', ignorée."
+        ram_pct=0
+    fi
+    if [[ ${ram_pct} -ge ${RAM_THRESHOLD} ]]; then
         fields+=("$(_checks_build_field "💾 RAM" "Utilisation: ${ram_pct}% — ${ram_used}MB / ${ram_total}MB (Seuil: ${RAM_THRESHOLD}%)")")
         global_status=2
         log_warn "RAM au-dessus du seuil: ${ram_pct}% >= ${RAM_THRESHOLD}%"
@@ -66,7 +79,11 @@ checks_run_system() {
         disk_used=$(echo "${disk_info}" | awk '{print $2}')
         disk_total=$(echo "${disk_info}" | awk '{print $3}')
         log_debug "Disque (${mp}): ${disk_pct}% (${disk_used}GB / ${disk_total}GB)"
-        if [[ -n "${disk_pct}" && ${disk_pct} -ge ${DISK_THRESHOLD} ]]; then
+        if [[ ! "${disk_pct}" =~ ^[0-9]+$ ]]; then
+            log_warn "Disque (${mp}): valeur invalide '${disk_pct}', ignorée."
+            disk_pct=0
+        fi
+        if [[ ${disk_pct} -ge ${DISK_THRESHOLD} ]]; then
             fields+=("$(_checks_build_field "💿 Disque (${mp})" "Utilisation: ${disk_pct}% — ${disk_used}GB / ${disk_total}GB (Seuil: ${DISK_THRESHOLD}%)")")
             global_status=2
             log_warn "Disque (${mp}) au-dessus du seuil: ${disk_pct}% >= ${DISK_THRESHOLD}%"
@@ -180,6 +197,9 @@ checks_run_docker() {
 # Exécute toutes les vérifications et envoie les alertes Discord si nécessaire
 # Respecte le mode DRY_RUN (variable globale définie dans monitor.sh)
 checks_run_all() {
+    # Réinitialisation du cache Docker en début de cycle
+    docker_reset_cache
+
     log_info "Début des vérifications."
 
     # Vérifications système

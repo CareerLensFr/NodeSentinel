@@ -150,8 +150,7 @@ main() {
     # Surcharge de la configuration si un chemin spécifique est donné
     if [[ -n "${CONFIG_PATH}" ]]; then
         if [[ -f "${CONFIG_PATH}" ]]; then
-            # shellcheck disable=SC1090
-            source "${CONFIG_PATH}"
+            _config_load_env_file "${CONFIG_PATH}"
         else
             echo "Erreur: Fichier de configuration introuvable: ${CONFIG_PATH}" >&2
             exit 1
@@ -177,7 +176,22 @@ main() {
     # Gestionnaires de signaux
     setup_signal_handlers
 
-    # Validation du webhook Discord (sauf en dry-run)
+    # Mode one-shot : exécute les checks une fois et quitte (pas de notification de démarrage)
+    if utils_is_true "${RUN_ONCE}"; then
+        if ! utils_is_true "${DRY_RUN}"; then
+            if ! discord_validate_webhook; then
+                log_error "Webhook Discord invalide. Les alertes ne seront pas envoyées."
+            fi
+        else
+            log_info "Mode DRY-RUN activé. Aucune alerte Discord ne sera envoyée."
+        fi
+        log_info "Exécution unique (one-shot)..."
+        checks_run_all
+        log_info "Vérification terminée."
+        exit 0
+    fi
+
+    # Mode daemon : validation webhook + notification de démarrage
     if ! utils_is_true "${DRY_RUN}"; then
         if ! discord_validate_webhook; then
             log_error "Webhook Discord invalide. Les alertes ne seront pas envoyées."
@@ -186,14 +200,6 @@ main() {
         fi
     else
         log_info "Mode DRY-RUN activé. Aucune alerte Discord ne sera envoyée."
-    fi
-
-    # Mode one-shot : exécute les checks une fois et quitte
-    if utils_is_true "${RUN_ONCE}"; then
-        log_info "Exécution unique (one-shot)..."
-        checks_run_all
-        log_info "Vérification terminée."
-        exit 0
     fi
 
     # Mode daemon : boucle infinie

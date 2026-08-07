@@ -7,8 +7,6 @@
 
 [[ -n "${_UTILS_MODULE_LOADED:-}" ]] && return 0; _UTILS_MODULE_LOADED=1
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
 # Vérifie qu'une commande existe
 utils_command_exists() {
     local cmd="$1"
