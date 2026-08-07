@@ -50,6 +50,18 @@ _log_message() {
         local timestamp
         timestamp=$(date +"%Y-%m-%d %H:%M:%S")
         echo "[${timestamp}] [${level}] ${message}" >> "${LOG_FILE}"
+
+        # Écrire sur la console (stderr) si LOG_TO_CONSOLE est activé
+        if utils_is_true "${LOG_TO_CONSOLE:-true}"; then
+            local color=""
+            case "${level}" in
+                DEBUG)          color="\e[36m" ;; # Cyan
+                INFO)           color="\e[32m" ;; # Vert
+                WARN)           color="\e[33m" ;; # Jaune
+                ERROR|CRITICAL) color="\e[31m" ;; # Rouge
+            esac
+            echo -e "${color}[${level}]\e[0m ${message}" >&2
+        fi
     fi
 }
 

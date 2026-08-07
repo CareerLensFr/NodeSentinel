@@ -4,6 +4,15 @@ Tous les changements notables apportés à ce projet seront documentés dans ce 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère à la [Gestion Sémantique de Version](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] - 2026-08-07
+
+### Ajouté
+- **Animé (Installateur)** : Ajout d'animations fluides (spinners de chargement) et de bannières esthétiques colorées dans `install.sh` et `uninstall.sh` pour une expérience premium.
+- **Logs (Console)** : Affichage couleur des métriques et logs en temps réel sur la console (stderr) si `LOG_TO_CONSOLE=true` (activé par défaut), permettant la consultation directe sur le terminal et la capture automatique par `journalctl` dans Systemd.
+
+### Modifié
+- **Systemd (Intervalle)** : Raccordement dynamique de l'intervalle systemd avec la variable `CHECK_INTERVAL` définie dans le fichier `.env` lors de l'installation pour éliminer le décalage de fréquence.
+
 ## [1.0.4] - 2026-08-07
 
 ### Corrigé
