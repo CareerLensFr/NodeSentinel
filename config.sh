@@ -86,7 +86,7 @@ _config_validate() {
 
     # Valider le niveau de log
     local valid_levels="DEBUG INFO WARN ERROR CRITICAL"
-    if [[ ! " ${valid_levels} " =~ " ${LOG_LEVEL} " ]]; then
+    if [[ ! " ${valid_levels} " == *" ${LOG_LEVEL} "* ]]; then
         echo "Erreur: LOG_LEVEL='${LOG_LEVEL}' invalide (attendu: ${valid_levels})" >&2
         errors=$((errors + 1))
     fi

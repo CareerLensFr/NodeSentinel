@@ -4,6 +4,11 @@ Tous les changements notables apportés à ce projet seront documentés dans ce 
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère à la [Gestion Sémantique de Version](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2026-08-07
+
+### Corrigé
+- **Config** : Résolution de l'avertissement ShellCheck SC2076 dans la validation du niveau de log en remplaçant la comparaison regex avec guillemets par une recherche de glob standard (`== *pattern*`).
+
 ## [1.0.3] - 2026-08-07
 
 ### Sécurité
