@@ -5,11 +5,13 @@ if [[ -n "${_DISCORD_MODULE_LOADED:-}" ]]; then
 fi
 _DISCORD_MODULE_LOADED=1
 
-_DISCORD_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"; pwd)"
+_DISCORD_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" || exit 1; pwd)"
 # shellcheck source=lib/utils.sh
 source "${_DISCORD_SCRIPT_DIR}/utils.sh"
 # shellcheck source=lib/logger.sh
 source "${_DISCORD_SCRIPT_DIR}/logger.sh"
+# shellcheck source=lib/system.sh
+source "${_DISCORD_SCRIPT_DIR}/system.sh"
 
 readonly DISCORD_COLOR_OK=3066993
 # shellcheck disable=SC2034

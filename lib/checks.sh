@@ -5,7 +5,7 @@ if [[ -n "${_CHECKS_MODULE_LOADED:-}" ]]; then
 fi
 _CHECKS_MODULE_LOADED=1
 
-_CHECKS_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"; pwd)"
+_CHECKS_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" || exit 1; pwd)"
 # shellcheck source=lib/utils.sh
 source "${_CHECKS_SCRIPT_DIR}/utils.sh"
 # shellcheck source=lib/logger.sh

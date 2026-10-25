@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-MONITOR_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"; pwd)"
+MONITOR_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" || exit 1; pwd)"
 
 if [[ -f "${MONITOR_SCRIPT_DIR}/config.sh" ]]; then
     # shellcheck source=config.sh

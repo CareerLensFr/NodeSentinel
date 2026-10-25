@@ -5,7 +5,7 @@ if [[ -n "${_LOGGER_MODULE_LOADED:-}" ]]; then
 fi
 _LOGGER_MODULE_LOADED=1
 
-_LOGGER_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"; pwd)"
+_LOGGER_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" || exit 1; pwd)"
 # shellcheck source=lib/utils.sh
 source "${_LOGGER_SCRIPT_DIR}/utils.sh"
 

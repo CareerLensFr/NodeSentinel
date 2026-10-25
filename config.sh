@@ -5,7 +5,7 @@ readonly NODESENTINEL_VERSION="2.0.0"
 # shellcheck disable=SC2034
 readonly INSTALL_DIR="/opt/nodesentinel"
 
-CONFIG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"; pwd)"
+CONFIG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" || exit 1; pwd)"
 
 _config_load_env_file() {
     local env_file="$1"
