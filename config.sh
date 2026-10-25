@@ -1,121 +1,159 @@
 #!/usr/bin/env bash
-#
-# Nom: config.sh
-# Description: Charge la configuration et définit les constantes.
-# Auteur: CareerLens
-# Licence: MIT
 
 # shellcheck disable=SC2034
-readonly NODESENTINEL_VERSION="1.0.0"
+readonly NODESENTINEL_VERSION="2.0.0"
 # shellcheck disable=SC2034
 readonly INSTALL_DIR="/opt/nodesentinel"
 
-# Résolution du répertoire de ce fichier de configuration
-CONFIG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" || exit 1; pwd)"
 
-# Chargement sécurisé d'un fichier .env (sans exécution de code arbitraire)
 _config_load_env_file() {
     local env_file="$1"
-    [[ ! -f "${env_file}" ]] && return 1
+    if [[ ! -f "${env_file}" ]]; then
+        return 1
+    fi
 
     local line key value
     while IFS= read -r line || [[ -n "${line}" ]]; do
-        # Supprimer les retours chariot Windows
         line="${line//$'\r'/}"
-        # Ignorer les lignes vides et les commentaires
-        [[ -z "${line}" || "${line}" =~ ^[[:space:]]*# ]] && continue
-        # Extraire clé=valeur
+        if [[ -z "${line}" ]]; then
+            continue
+        fi
+        if [[ "${line}" =~ ^[[:space:]]*# ]]; then
+            continue
+        fi
         key="${line%%=*}"
         value="${line#*=}"
-        # Nettoyer les espaces autour de la clé
         key="$(echo "${key}" | tr -d '[:space:]')"
-        # Valider que la clé est un nom de variable valide
-        [[ ! "${key}" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] && continue
-        # Supprimer les guillemets englobants de la valeur
-        value="${value#\"}"; value="${value%\"}"
-        value="${value#\'}"; value="${value%\'}"
-        # Exporter la variable
+        if [[ ! "${key}" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+            continue
+        fi
+        value="${value#\"}"
+        value="${value%\"}"
+        value="${value#\'}"
+        value="${value%\'}"
         export "${key}=${value}"
     done < "${env_file}"
 }
 
-# Charge les variables du fichier .env s'il existe
 if [[ -f "${CONFIG_DIR}/.env" ]]; then
     _config_load_env_file "${CONFIG_DIR}/.env"
 fi
 
-# Valeurs par défaut
 DISCORD_WEBHOOK_URL="${DISCORD_WEBHOOK_URL:-}"
 DISCORD_USERNAME="${DISCORD_USERNAME:-NodeSentinel}"
 
+CPU_WARN_THRESHOLD="${CPU_WARN_THRESHOLD:-75}"
 CPU_THRESHOLD="${CPU_THRESHOLD:-90}"
+IOWAIT_THRESHOLD="${IOWAIT_THRESHOLD:-40}"
+
+RAM_WARN_THRESHOLD="${RAM_WARN_THRESHOLD:-75}"
 RAM_THRESHOLD="${RAM_THRESHOLD:-85}"
+SWAP_THRESHOLD="${SWAP_THRESHOLD:-80}"
+
+DISK_WARN_THRESHOLD="${DISK_WARN_THRESHOLD:-80}"
 DISK_THRESHOLD="${DISK_THRESHOLD:-90}"
+INODE_THRESHOLD="${INODE_THRESHOLD:-90}"
+
+LOAD_WARN_MULTIPLIER="${LOAD_WARN_MULTIPLIER:-1.5}"
+LOAD_CRIT_MULTIPLIER="${LOAD_CRIT_MULTIPLIER:-2.0}"
+
+TEMP_WARN_THRESHOLD="${TEMP_WARN_THRESHOLD:-75}"
+TEMP_THRESHOLD="${TEMP_THRESHOLD:-85}"
+
+NET_BW_THRESHOLD_MBPS="${NET_BW_THRESHOLD_MBPS:-100}"
+TOP_PROCESS_COUNT="${TOP_PROCESS_COUNT:-5}"
 
 LOAD_MONITORING="${LOAD_MONITORING:-true}"
+TEMP_MONITORING="${TEMP_MONITORING:-true}"
+SWAP_MONITORING="${SWAP_MONITORING:-true}"
 NETWORK_MONITORING="${NETWORK_MONITORING:-true}"
 DOCKER_MONITORING="${DOCKER_MONITORING:-true}"
+
+ALERT_COOLDOWN="${ALERT_COOLDOWN:-1800}"
+STATE_FILE="${STATE_FILE:-/var/tmp/nodesentinel.state}"
 
 LOG_FILE="${LOG_FILE:-/var/log/nodesentinel.log}"
 LOG_LEVEL="${LOG_LEVEL:-INFO}"
 LOG_MAX_SIZE="${LOG_MAX_SIZE:-10485760}"
 LOG_TO_CONSOLE="${LOG_TO_CONSOLE:-true}"
 
-CHECK_INTERVAL="${CHECK_INTERVAL:-300}"
+CHECK_INTERVAL="${CHECK_INTERVAL:-120}"
 HOSTNAME_OVERRIDE="${HOSTNAME_OVERRIDE:-$(hostname)}"
 DISK_MOUNT_POINTS="${DISK_MOUNT_POINTS:-/}"
 
-# Validation des seuils de configuration (M-01)
+_config_is_pct() {
+    local val="$1"
+    if [[ ! "${val}" =~ ^[0-9]+$ ]]; then
+        return 1
+    fi
+    if [[ ${val} -lt 0 ]] || [[ ${val} -gt 100 ]]; then
+        return 1
+    fi
+    return 0
+}
+
+_config_is_positive_int() {
+    local val="$1"
+    if [[ ! "${val}" =~ ^[0-9]+$ ]]; then
+        return 1
+    fi
+    if [[ ${val} -le 0 ]]; then
+        return 1
+    fi
+    return 0
+}
+
 _config_validate() {
     local errors=0
-
-    # Valider les seuils (0-100)
     local threshold_name threshold_value
-    for threshold_name in CPU_THRESHOLD RAM_THRESHOLD DISK_THRESHOLD; do
+
+    for threshold_name in \
+        CPU_WARN_THRESHOLD CPU_THRESHOLD IOWAIT_THRESHOLD \
+        RAM_WARN_THRESHOLD RAM_THRESHOLD SWAP_THRESHOLD \
+        DISK_WARN_THRESHOLD DISK_THRESHOLD INODE_THRESHOLD; do
         threshold_value="${!threshold_name}"
-        if [[ ! "${threshold_value}" =~ ^[0-9]+$ ]] || [[ ${threshold_value} -lt 0 ]] || [[ ${threshold_value} -gt 100 ]]; then
-            echo "Erreur: ${threshold_name}='${threshold_value}' invalide (attendu: 0-100)" >&2
+        if ! _config_is_pct "${threshold_value}"; then
+            echo "Erreur: ${threshold_name}='${threshold_value}' invalide, attendu entre 0 et 100" >/dev/stderr
             errors=$((errors + 1))
         fi
     done
 
-    # Valider l'intervalle (> 0)
-    if [[ ! "${CHECK_INTERVAL}" =~ ^[0-9]+$ ]] || [[ ${CHECK_INTERVAL} -le 0 ]]; then
-        echo "Erreur: CHECK_INTERVAL='${CHECK_INTERVAL}' invalide (attendu: > 0)" >&2
+    for threshold_name in CHECK_INTERVAL LOG_MAX_SIZE TOP_PROCESS_COUNT NET_BW_THRESHOLD_MBPS TEMP_WARN_THRESHOLD TEMP_THRESHOLD; do
+        threshold_value="${!threshold_name}"
+        if ! _config_is_positive_int "${threshold_value}"; then
+            echo "Erreur: ${threshold_name}='${threshold_value}' invalide, entier positif attendu" >/dev/stderr
+            errors=$((errors + 1))
+        fi
+    done
+
+    if [[ ! "${ALERT_COOLDOWN}" =~ ^[0-9]+$ ]]; then
+        echo "Erreur: ALERT_COOLDOWN='${ALERT_COOLDOWN}' invalide, entier >= 0 attendu" >/dev/stderr
         errors=$((errors + 1))
     fi
 
-    # Valider le niveau de log
     local valid_levels="DEBUG INFO WARN ERROR CRITICAL"
     if [[ ! " ${valid_levels} " == *" ${LOG_LEVEL} "* ]]; then
-        echo "Erreur: LOG_LEVEL='${LOG_LEVEL}' invalide (attendu: ${valid_levels})" >&2
-        errors=$((errors + 1))
-    fi
-
-    # Valider LOG_MAX_SIZE (> 0)
-    if [[ ! "${LOG_MAX_SIZE}" =~ ^[0-9]+$ ]] || [[ ${LOG_MAX_SIZE} -le 0 ]]; then
-        echo "Erreur: LOG_MAX_SIZE='${LOG_MAX_SIZE}' invalide (attendu: > 0)" >&2
+        echo "Erreur: LOG_LEVEL='${LOG_LEVEL}' invalide, valeurs permises: ${valid_levels}" >/dev/stderr
         errors=$((errors + 1))
     fi
 
     return ${errors}
 }
 
-_config_validate || { echo "FATAL: Configuration invalide. Abandon." >&2; exit 1; }
+if ! _config_validate; then
+    echo "FATAL: Configuration invalide. Abandon." >/dev/stderr
+    exit 1
+fi
 
-# Export des variables pour les rendre disponibles
-export DISCORD_WEBHOOK_URL
-export DISCORD_USERNAME
-export CPU_THRESHOLD
-export RAM_THRESHOLD
-export DISK_THRESHOLD
-export LOAD_MONITORING
-export NETWORK_MONITORING
-export DOCKER_MONITORING
-export LOG_FILE
-export LOG_LEVEL
-export LOG_MAX_SIZE
-export LOG_TO_CONSOLE
-export CHECK_INTERVAL
-export HOSTNAME_OVERRIDE
-export DISK_MOUNT_POINTS
+export DISCORD_WEBHOOK_URL DISCORD_USERNAME
+export CPU_WARN_THRESHOLD CPU_THRESHOLD IOWAIT_THRESHOLD
+export RAM_WARN_THRESHOLD RAM_THRESHOLD SWAP_THRESHOLD
+export DISK_WARN_THRESHOLD DISK_THRESHOLD INODE_THRESHOLD
+export LOAD_WARN_MULTIPLIER LOAD_CRIT_MULTIPLIER
+export TEMP_WARN_THRESHOLD TEMP_THRESHOLD
+export NET_BW_THRESHOLD_MBPS TOP_PROCESS_COUNT
+export LOAD_MONITORING TEMP_MONITORING SWAP_MONITORING NETWORK_MONITORING DOCKER_MONITORING
+export ALERT_COOLDOWN STATE_FILE
+export LOG_FILE LOG_LEVEL LOG_MAX_SIZE LOG_TO_CONSOLE
+export CHECK_INTERVAL HOSTNAME_OVERRIDE DISK_MOUNT_POINTS

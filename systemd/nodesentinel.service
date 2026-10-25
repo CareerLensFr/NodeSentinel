@@ -1,5 +1,5 @@
 [Unit]
-Description=NodeSentinel - Surveillance système et Docker
+Description=NodeSentinel - Service d'alerte de performance serveur
 After=network-online.target docker.service
 Wants=network-online.target
 
